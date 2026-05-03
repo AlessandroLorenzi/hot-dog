@@ -38,7 +38,7 @@ void setup() {
   delay(2000);
 
   if (!display.begin(SSD1306_SWITCHCAPVCC, 0x3C)) {
-    Serial.println("Display non trovato!");
+    Serial.println("Display not found!");
     while (true);
   }
   print_wakeup_reason();
@@ -63,7 +63,7 @@ void read_data(){
   float t = dht.readTemperature();
   float h = dht.readHumidity();
   if(isnan(t) || isnan(h)){
-    Serial.println("Errore lettura DHT!");
+    Serial.println("DHT read error!");
     return;
   }
 
