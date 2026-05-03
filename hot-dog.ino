@@ -33,12 +33,14 @@ void print_on_serial();
 void print_on_display();
 void connect_to_wifi();
 void telegram_alert();
+void telegram_keepalive();
 
 // Global variables
 float temp = 0.0;
 float humid = 0.0;
 RTC_DATA_ATTR float max_temp = 0.0;
 RTC_DATA_ATTR float max_humid = 0.0;
+RTC_DATA_ATTR int last_keepalive = 0;
 
 WiFiClientSecure client;
 UniversalTelegramBot bot(BOT_TOKEN, client);
@@ -72,6 +74,7 @@ void setup() {
     telegram_alert();
     WiFi.disconnect(true);
   }
+  telegram_keepalive();
 
   // Configure deep sleep
   esp_sleep_enable_timer_wakeup(TIME_TO_SLEEP * uS_TO_S_FACTOR);
@@ -164,4 +167,20 @@ void telegram_alert() {
   msg += "Max Humidity: " + String(max_humid, 1) + "%";
   bot.sendMessage(CHAT_ID, msg, "");
   Serial.println("Telegram alert sent.");
+}
+
+void telegram_keepalive() {
+  if (last_keepalive == 0) {
+      connect_to_wifi();
+
+      client.setInsecure(); // Disable SSL certificate verification
+      bot.sendMessage(CHAT_ID, "Fenny keepalive", "");
+      Serial.println("Telegram keepalive sent.");
+      
+      WiFi.disconnect(true);
+  }
+  last_keepalive ++;
+  if (last_keepalive == 10) {
+    last_keepalive = 0;
+  }
 }
