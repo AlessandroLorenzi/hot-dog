@@ -19,7 +19,7 @@ Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
 
 
 #define uS_TO_S_FACTOR 1000000ULL /* Conversion factor for micro seconds to seconds */
-#define TIME_TO_SLEEP  3         /* Time ESP32 will go to sleep (in seconds) */
+#define TIME_TO_SLEEP  30         /* Time ESP32 will go to sleep (in seconds) */
 
 void read_data();
 void print_on_serial();
