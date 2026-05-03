@@ -53,8 +53,7 @@ void setup() {
 }
 
 void loop() {
-
-
+  // never called because of deep sleep
 }
 
 void read_data(){
