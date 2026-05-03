@@ -1,0 +1,12 @@
+// WiFi credentials
+#define WIFI_SSID "your_ssid"
+#define WIFI_PASSWORD "your_password"
+
+// Telegram bot
+#define BOT_TOKEN "123456789:AAxxxx..."
+#define CHAT_ID   "123456789"
+
+#define TIME_TO_SLEEP  30         /* Time ESP32 will go to sleep (in seconds) */
+
+// Threshold for "FENNY HOT" status
+#define THRESHOLD 27.0

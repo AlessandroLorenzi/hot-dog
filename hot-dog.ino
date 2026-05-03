@@ -6,6 +6,12 @@
 #include <Adafruit_SSD1306.h>
 #include <Wire.h>
 
+// Imports wifi
+#include <WiFi.h>
+#include <WiFiClientSecure.h>
+#include <UniversalTelegramBot.h>
+#include "config.h"
+
 // Setup DHT sensor
 #define DHTPIN 4
 #define DHTTYPE DHT11
@@ -18,23 +24,24 @@ DHT dht(DHTPIN, DHTTYPE);
 #define OLED_RESET     -1
 Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
 
-// Threshold for "FENNY HOT" status
-#define THRESHOLD 27.0
-
 // Deep sleep settings
 #define uS_TO_S_FACTOR 1000000ULL /* Conversion factor for micro seconds to seconds */
-#define TIME_TO_SLEEP  30         /* Time ESP32 will go to sleep (in seconds) */
 
 // Function prototypes
 void read_data();
 void print_on_serial();
 void print_on_display();
+void connect_to_wifi();
+void telegram_alert();
 
 // Global variables
 float temp = 0.0;
 float humid = 0.0;
 RTC_DATA_ATTR float max_temp = 0.0;
 RTC_DATA_ATTR float max_humid = 0.0;
+
+WiFiClientSecure client;
+UniversalTelegramBot bot(BOT_TOKEN, client);
 
 void setup() {
   Serial.begin(115200);
@@ -58,7 +65,14 @@ void setup() {
   read_data();
   print_on_display();
   print_on_serial();
-  
+
+  // Send Telegram alert if temperature exceeds threshold
+  if (temp >= THRESHOLD) {
+    connect_to_wifi();
+    telegram_alert();
+    WiFi.disconnect(true);
+  }
+
   // Configure deep sleep
   esp_sleep_enable_timer_wakeup(TIME_TO_SLEEP * uS_TO_S_FACTOR);
   esp_deep_sleep_start();
@@ -129,4 +143,25 @@ void print_on_display() {
   }
 
   display.display();
+}
+
+void connect_to_wifi() {
+  Serial.print("Connecting to WiFi...");
+  WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
+  while (WiFi.status() != WL_CONNECTED) {
+    delay(500);
+    Serial.print(".");
+  }
+  Serial.println("Connected!");
+}
+
+void telegram_alert() {
+  client.setInsecure(); // Disable SSL certificate verification
+  String msg = "Fenny is HOT!\n";
+  msg += "Temp: " + String(temp, 1) + "C\n";
+  msg += "Humidity: " + String(humid, 1) + "%";
+  msg += "\nMax Temp: " + String(max_temp, 1) + "C\n";
+  msg += "Max Humidity: " + String(max_humid, 1) + "%";
+  bot.sendMessage(CHAT_ID, msg, "");
+  Serial.println("Telegram alert sent.");
 }
