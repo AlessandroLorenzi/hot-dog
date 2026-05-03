@@ -34,6 +34,6 @@ FENNY OK
 
 ## Dependencies
 
-- [DHT sensor library](https://github.com/adafruit/DHT-sensor-library) — Adafruit
+- [DHT sensor library](https://github.com/adafruit/DHT-sensor-library)
 - [Adafruit GFX Library](https://github.com/adafruit/Adafruit-GFX-Library)
 - [Adafruit SSD1306](https://github.com/adafruit/Adafruit_SSD1306)
