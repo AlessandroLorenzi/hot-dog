@@ -24,7 +24,6 @@ Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
 void read_data();
 void print_on_serial();
 void print_on_display();
-void print_wakeup_reason();
 
 float temp = 0.0;
 float humid = 0.0;
@@ -41,7 +40,6 @@ void setup() {
     Serial.println("Display not found!");
     while (true);
   }
-  print_wakeup_reason();
 
   display.setTextColor(WHITE);
 
@@ -118,22 +116,4 @@ void print_on_display() {
   }
 
   display.display();
-}
-
-
-// Method to print the reason by which ESP32 has been awaken from sleep
-void print_wakeup_reason(){
-  esp_sleep_wakeup_cause_t wakeup_reason;
-
-  wakeup_reason = esp_sleep_get_wakeup_cause();
-
-  switch(wakeup_reason)
-  {
-    case ESP_SLEEP_WAKEUP_EXT0 : Serial.println("Wakeup caused by external signal using RTC_IO"); break;
-    case ESP_SLEEP_WAKEUP_EXT1 : Serial.println("Wakeup caused by external signal using RTC_CNTL"); break;
-    case ESP_SLEEP_WAKEUP_TIMER : Serial.println("Wakeup caused by timer"); break;
-    case ESP_SLEEP_WAKEUP_TOUCHPAD : Serial.println("Wakeup caused by touchpad"); break;
-    case ESP_SLEEP_WAKEUP_ULP : Serial.println("Wakeup caused by ULP program"); break;
-    default : Serial.printf("Wakeup was not caused by deep sleep: %d\n",wakeup_reason); break;
-  }
 }
