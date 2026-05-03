@@ -1,30 +1,36 @@
-// Temp/Humidity DHT11
+// Temp & Humidity
 #include <DHT.h>
 
-// Display
+// Display imports
 #include <Adafruit_GFX.h>
 #include <Adafruit_SSD1306.h>
 #include <Wire.h>
 
+// Setup DHT sensor
 #define DHTPIN 4
 #define DHTTYPE DHT11
-#define THRESHOLD 27.0
 
 DHT dht(DHTPIN, DHTTYPE);
 
+// Setup display
 #define SCREEN_WIDTH 128
 #define SCREEN_HEIGHT 64
 #define OLED_RESET     -1
 Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
 
+// Threshold for "FENNY HOT" status
+#define THRESHOLD 27.0
 
+// Deep sleep settings
 #define uS_TO_S_FACTOR 1000000ULL /* Conversion factor for micro seconds to seconds */
 #define TIME_TO_SLEEP  30         /* Time ESP32 will go to sleep (in seconds) */
 
+// Function prototypes
 void read_data();
 void print_on_serial();
 void print_on_display();
 
+// Global variables
 float temp = 0.0;
 float humid = 0.0;
 RTC_DATA_ATTR float max_temp = 0.0;
@@ -32,8 +38,11 @@ RTC_DATA_ATTR float max_humid = 0.0;
 
 void setup() {
   Serial.begin(115200);
+
   pinMode(DHTPIN, INPUT_PULLUP);
   dht.begin();
+
+  // Wait for sensor to stabilize
   delay(2000);
 
   if (!display.begin(SSD1306_SWITCHCAPVCC, 0x3C)) {
@@ -41,20 +50,25 @@ void setup() {
     while (true);
   }
 
+  // Clear the buffer
+  display.clearDisplay();
   display.setTextColor(WHITE);
 
+  // Read sensor data, print on display and serial
   read_data();
   print_on_display();
   print_on_serial();
   
-  delay(2000);
+  // Configure deep sleep
   esp_sleep_enable_timer_wakeup(TIME_TO_SLEEP * uS_TO_S_FACTOR);
   esp_deep_sleep_start();
 }
 
+
 void loop() {
   // never called because of deep sleep
 }
+
 
 void read_data(){
   float t = dht.readTemperature();
