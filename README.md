@@ -49,6 +49,30 @@ Copy `config.h.example` to `config.h` and fill in your credentials:
 To get a bot token, talk to [@BotFather](https://t.me/BotFather) on Telegram.
 To get your chat ID, use [@userinfobot](https://t.me/userinfobot).
 
+## Build & Upload
+
+Requires [arduino-cli](https://arduino.github.io/arduino-cli/).
+
+```bash
+# Compile and upload to /dev/ttyUSB0
+make all
+
+# Install required libraries (once)
+make install-libs
+
+# Compile
+make compile
+
+# Compile and upload to /dev/ttyUSB0
+make upload
+
+# Open serial monitor
+make monitor
+
+# Override port
+make upload PORT=/dev/ttyUSB1
+```
+
 ## Dependencies
 
 - [DHT sensor library](https://github.com/adafruit/DHT-sensor-library) — Adafruit
