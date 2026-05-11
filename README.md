@@ -1,14 +1,22 @@
 # Hot Dog
 
 Temperature and humidity monitor for Fenny, built on an ESP32 with a DHT11 sensor
-and SSD1306 OLED display. Sends a Telegram alert when the temperature exceeds the
-threshold.
+and SSD1306 OLED display. Publishes Telegram status notifications based on the
+temperature threshold.
 
 ## How it works
 
-The device reads temperature and humidity every 2 seconds and updates the OLED display.
-If the temperature exceeds **27°C**, the display shows `FENNY HOT` and a Telegram
-alert is sent.
+The device reads temperature and humidity every 10 seconds and updates the OLED display.
+If the temperature exceeds **27°C** (configurable via `THRESHOLD`), the display shows
+`FENNY HOT`.
+
+Wi-Fi connection handling is non-blocking: the sketch keeps running even if the network
+is down, and retries connection in the background every 5 seconds.
+
+Telegram notifications are rate-limited by status:
+
+- `FENNY HOT` notification: at most once per minute while temperature is above threshold
+- `FENNY OK` notification: at most once every 10 minutes while temperature is below threshold
 
 Maximum temperature and humidity values are tracked while the device is running.
 

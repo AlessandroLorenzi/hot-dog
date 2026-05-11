@@ -29,15 +29,20 @@ void read_data();
 void print_on_serial();
 void print_on_display();
 void connect_to_wifi();
+void maintain_wifi_connection();
 void telegram_alert();
-void telegram_keepalive();
+bool telegram_send_message(const String& message);
+String stringify_status();
 
 // Global variables
 float temp = 0.0;
 float humid = 0.0;
 float max_temp = 0.0;
 float max_humid = 0.0;
-int last_keepalive = 0;
+int last_telegram_message = 0;
+unsigned long last_wifi_attempt_ms = 0;
+const unsigned long WIFI_RETRY_INTERVAL_MS = 5000;
+bool wifi_was_connected = false;
 
 WiFiClientSecure wifiClient;
 UniversalTelegramBot bot(BOT_TOKEN, wifiClient);
@@ -62,23 +67,18 @@ void setup() {
 
 
   connect_to_wifi();
-
 }
 
 
 void loop() {
-  // Read sensor data, print on display and serial
+  maintain_wifi_connection();
+
   read_data();
   print_on_display();
   print_on_serial();
+  telegram_alert();
 
-  // Send Telegram alert if temperature exceeds threshold
-  if (temp >= THRESHOLD) {
-    telegram_alert();
-  }
-  telegram_keepalive();
-
-  delay(2000);
+  delay(10000);
 }
 
 
@@ -150,40 +150,75 @@ void print_on_display() {
 }
 
 void connect_to_wifi() {
-  Serial.print("Connecting to WiFi...");
   WiFi.setAutoReconnect(true);
   WiFi.setSleep(false);
+  Serial.println("Starting WiFi connection...");
   WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
-  while (WiFi.status() != WL_CONNECTED) {
-    delay(500);
-    Serial.print(".");
+  last_wifi_attempt_ms = millis();
+}
+
+void maintain_wifi_connection() {
+  wl_status_t wifi_status = WiFi.status();
+
+  if (wifi_status == WL_CONNECTED) {
+    if (!wifi_was_connected) {
+      Serial.print("WiFi connected. IP: ");
+      Serial.println(WiFi.localIP());
+      wifi_was_connected = true;
+    }
+    return;
   }
-  Serial.println("Connected!");
+
+  if (wifi_was_connected) {
+    Serial.println("WiFi disconnected, retrying...");
+    wifi_was_connected = false;
+  }
+
+  unsigned long now = millis();
+  if (now - last_wifi_attempt_ms >= WIFI_RETRY_INTERVAL_MS) {
+    Serial.println("Attempting WiFi reconnect...");
+    WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
+    last_wifi_attempt_ms = now;
+  }
 }
 
 void telegram_alert() {
-  wifiClient.setInsecure(); // Disable SSL certificate verification
-  String msg = "Fenny is HOT!\n";
-  msg += "Temp: " + String(temp, 1) + "C\n";
-  msg += "Humidity: " + String(humid, 1) + "%";
-  msg += "\nMax Temp: " + String(max_temp, 1) + "C\n";
-  msg += "Max Humidity: " + String(max_humid, 1) + "%";
-  bot.sendMessage(CHAT_ID, msg, "");
-  Serial.println("Telegram alert sent.");
+  String msg;
+
+  if (temp < THRESHOLD) {
+    if ((millis() - last_telegram_message) < 10 * 60 * 1000) { // 10 minutes
+      return;
+    }
+    msg += "Fenny is OK: \n" + stringify_status();
+  } else {
+    if (millis() - last_telegram_message < 1 * 60 * 1000) { // 1 minute
+      return;
+    }
+    msg += "Fenny is HOT!\n" + stringify_status();
+
+  }
+
+  if (telegram_send_message(msg)) {
+    last_telegram_message = millis();
+  }
 }
 
-void telegram_keepalive() {
-  if (last_keepalive == 0) {
-      wifiClient.setInsecure(); // Disable SSL certificate verification
-      String msg = "Fenny keepalive: \n";
-      msg += "  Temp " + String(temp, 1) + "C, Humidity " + String(humid, 1) + "% \n";
-      msg += "  Max Temp: " + String(max_temp, 1) + "C, Max Humidity: " + String(max_humid, 1) + "%";
-      bot.sendMessage(CHAT_ID, msg, "");
-      Serial.println("Telegram keepalive sent.");
+String stringify_status() {
+  String msg;
+  msg += "Temp: " + String(temp, 1) + "C, Humidity: " + String(humid, 1) + "%\n";
+  msg += "Max Temp: " + String(max_temp, 1) + "C, Max Humidity: " + String(max_humid, 1) + "%";
+  return msg; 
+}
+
+
+bool telegram_send_message(const String& message) {
+  if (WiFi.status() != WL_CONNECTED) {
+    Serial.println("Telegram message skipped: WiFi not connected.");
+    return false;
   }
-  last_keepalive ++;
-  // 150 * 2s = 5 minutes
-  if (last_keepalive == 150) {
-    last_keepalive = 0;
-  }
+
+  wifiClient.setInsecure(); // Disable SSL certificate verification
+  bot.sendMessage(CHAT_ID, message, "");
+  Serial.println("Telegram message sent: " + message);
+  return true;
 }
