@@ -6,12 +6,11 @@ threshold.
 
 ## How it works
 
-The device wakes up from deep sleep every 30 seconds, reads temperature and humidity,
-and shows the data on the display. If the temperature exceeds **27°C**, the display
-shows `FENNY HOT`, connects to WiFi, and sends a Telegram alert.
+The device reads temperature and humidity every 2 seconds and updates the OLED display.
+If the temperature exceeds **27°C**, the display shows `FENNY HOT` and a Telegram
+alert is sent.
 
-Maximum temperature and humidity values are stored in RTC memory, persisting across
-deep sleep cycles.
+Maximum temperature and humidity values are tracked while the device is running.
 
 ## Hardware
 

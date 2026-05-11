@@ -24,9 +24,6 @@ DHT dht(DHTPIN, DHTTYPE);
 #define OLED_RESET     -1
 Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
 
-// Deep sleep settings
-#define uS_TO_S_FACTOR 1000000ULL /* Conversion factor for micro seconds to seconds */
-
 // Function prototypes
 void read_data();
 void print_on_serial();
@@ -38,12 +35,12 @@ void telegram_keepalive();
 // Global variables
 float temp = 0.0;
 float humid = 0.0;
-RTC_DATA_ATTR float max_temp = 0.0;
-RTC_DATA_ATTR float max_humid = 0.0;
-RTC_DATA_ATTR int last_keepalive = 0;
+float max_temp = 0.0;
+float max_humid = 0.0;
+int last_keepalive = 0;
 
-WiFiClientSecure client;
-UniversalTelegramBot bot(BOT_TOKEN, client);
+WiFiClientSecure wifiClient;
+UniversalTelegramBot bot(BOT_TOKEN, wifiClient);
 
 void setup() {
   Serial.begin(115200);
@@ -63,6 +60,13 @@ void setup() {
   display.clearDisplay();
   display.setTextColor(WHITE);
 
+
+  connect_to_wifi();
+
+}
+
+
+void loop() {
   // Read sensor data, print on display and serial
   read_data();
   print_on_display();
@@ -70,20 +74,11 @@ void setup() {
 
   // Send Telegram alert if temperature exceeds threshold
   if (temp >= THRESHOLD) {
-    connect_to_wifi();
     telegram_alert();
-    WiFi.disconnect(true);
   }
   telegram_keepalive();
 
-  // Configure deep sleep
-  esp_sleep_enable_timer_wakeup(TIME_TO_SLEEP * uS_TO_S_FACTOR);
-  esp_deep_sleep_start();
-}
-
-
-void loop() {
-  // never called because of deep sleep
+  delay(2000);
 }
 
 
@@ -107,10 +102,16 @@ void read_data(){
 
 
 void print_on_serial() {
+  Serial.println("---- FENNY HOT DOG ----");
   Serial.print("Temp:      "); Serial.println(temp);
   Serial.print("Max Temp:  "); Serial.println(max_temp);
   Serial.print("Humid:     "); Serial.println(humid);
   Serial.print("Max Humid: "); Serial.println(max_humid);
+  if (temp < THRESHOLD) {
+    Serial.println("Status: FENNY OK");
+  } else {
+    Serial.println("Status: FENNY HOT");
+  }
 }
 
 
@@ -150,6 +151,8 @@ void print_on_display() {
 
 void connect_to_wifi() {
   Serial.print("Connecting to WiFi...");
+  WiFi.setAutoReconnect(true);
+  WiFi.setSleep(false);
   WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
   while (WiFi.status() != WL_CONNECTED) {
     delay(500);
@@ -159,7 +162,7 @@ void connect_to_wifi() {
 }
 
 void telegram_alert() {
-  client.setInsecure(); // Disable SSL certificate verification
+  wifiClient.setInsecure(); // Disable SSL certificate verification
   String msg = "Fenny is HOT!\n";
   msg += "Temp: " + String(temp, 1) + "C\n";
   msg += "Humidity: " + String(humid, 1) + "%";
@@ -171,16 +174,16 @@ void telegram_alert() {
 
 void telegram_keepalive() {
   if (last_keepalive == 0) {
-      connect_to_wifi();
-
-      client.setInsecure(); // Disable SSL certificate verification
-      bot.sendMessage(CHAT_ID, "Fenny keepalive", "");
+      wifiClient.setInsecure(); // Disable SSL certificate verification
+      String msg = "Fenny keepalive: \n";
+      msg += "  Temp " + String(temp, 1) + "C, Humidity " + String(humid, 1) + "% \n";
+      msg += "  Max Temp: " + String(max_temp, 1) + "C, Max Humidity: " + String(max_humid, 1) + "%";
+      bot.sendMessage(CHAT_ID, msg, "");
       Serial.println("Telegram keepalive sent.");
-      
-      WiFi.disconnect(true);
   }
   last_keepalive ++;
-  if (last_keepalive == 10) {
+  // 150 * 2s = 5 minutes
+  if (last_keepalive == 150) {
     last_keepalive = 0;
   }
 }

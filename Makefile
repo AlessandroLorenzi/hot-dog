@@ -7,7 +7,7 @@ BUILD_DIR := /tmp/hot-dog-build
 
 .PHONY: all compile upload monitor install-libs clean
 
-all: upload monitor
+all: compile upload monitor
 
 compile:
 	arduino-cli compile \
@@ -15,7 +15,7 @@ compile:
 		--build-path $(BUILD_DIR) \
 		$(SKETCH)
 
-upload: compile
+upload:
 	arduino-cli upload \
 		--fqbn $(BOARD) \
 		--port $(PORT) \
