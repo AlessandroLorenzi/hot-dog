@@ -1,5 +1,7 @@
 # Hot Dog
 
+> **Questo progetto è stato riscritto.** La nuova versione è disponibile su [AlessandroLorenzi/hot-dog-2](https://github.com/AlessandroLorenzi/hot-dog-2).
+
 Temperature and humidity monitor for Fenny, built on an ESP32 with a DHT11 sensor
 and SSD1306 OLED display. Publishes Telegram status notifications based on the
 temperature threshold.
